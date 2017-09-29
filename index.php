@@ -19,45 +19,60 @@
     <?php
       session_start();
 
-      $cantColumnaTablero = 8;
       $cantFilaTablero = 8;
-
-
-      if($_SERVER['REQUEST_METHOD'] == 'POST') {
-         //Processar les dades
-         $coordenades = $_POST['coordenades'];
-         if(comprobarQueNoSeSalga($coordenades, $cantFilaTablero, $cantColumnaTablero))
-          $_SESSION['rey_n'] = $coordenades;
-          else
-          echo "<h3>coordenades incorrectas.</h3>";
-      } else {
-         //Pintar el formulari
-        $_SESSION['rey_n'] = "5-B";
+      $cantColumnaTablero = 8;
+	  
+	  include "funciones.php";		
+		
+      if($_SERVER['REQUEST_METHOD'] == 'POST') { //Cuando se recibe las coordenades
+         $coordenades = validarFormatoCoordenades($_POST['coordenades']);
+		 if($coordenades != false){
+			 if(comprobarQueNoSeSalga($coordenades, $cantColumnaTablero, $cantFilaTablero)){
+				 if(validarMovimientoRey($coordenades)){
+					$_SESSION['rey_n'] = $coordenades;
+				 }else{
+					 echo "<h3>Movimiento no permitido.</h3>";
+				 }
+			 }else{
+				echo "<h3>Coordenades incorrectas.</h3>";
+			 }
+		 }else{
+			 echo "<h3>Formato incorrecto.</h3>";
+		 }
+         
+      } else { //cuando no se reciben coordenades (inicializar)
+		if(empty($_SESSION['rey_n']))
+			$_SESSION['rey_n'] = "1-E";
+		else
+			if(!comprobarQueNoSeSalga($_SESSION['rey_n'], $cantColumnaTablero, $cantFilaTablero))
+				$_SESSION['rey_n'] = "1-E";
       }
+	  
+	  //creacion tabla y su contenido
       echo "<table>";
-      for($columna = $cantColumnaTablero+1; $columna >= 0; $columna --){
+      for($fila = $cantFilaTablero+1; $fila >= 0; $fila --){
         echo "<tr>";
-        for($fila = 0; $fila < $cantFilaTablero+2; $fila ++){
-          $columna_actual = chr(64+$fila);
+        for($columna = 0; $columna < $cantColumnaTablero+2; $columna ++){
+          $columna_actual = getStringOfCode($columna);
           //esquinas
-          if($columna == 0 && $fila == 0 || $columna == $cantColumnaTablero+1 && $fila == $cantFilaTablero+1  || $columna == 0 && $fila == $cantFilaTablero+1  || $columna == $cantColumnaTablero+1 && $fila == 0)
+          if($fila == 0 && $columna == 0 || $fila == $cantFilaTablero+1 && $columna == $cantColumnaTablero+1  || $fila == 0 && $columna == $cantColumnaTablero+1  || $fila == $cantFilaTablero+1 && $columna == 0)
             echo "<td></td>";
           //arriba y abajo
-          else if($columna == 0 || $columna == $cantColumnaTablero+1){
+          else if($fila == 0 || $fila == $cantFilaTablero+1){
             echo "<td>$columna_actual</td>";
           }
           //derecha y izquierda
-          else if($fila == 0 || $fila == $cantFilaTablero+1)
-            echo "<td>$columna</td>";
+          else if($columna == 0 || $columna == $cantColumnaTablero+1)
+            echo "<td>$fila</td>";
           //contenido ajedrez
           else{
-            if(($columna + $fila) % 2 == 1)
+            if(($fila + $columna) % 2 == 1)
               echo "<td style='background-color: white; color: black; border: 1px solid black;'>";
             else
               echo "<td style='background-color: black; color:white; border: 1px solid black;'>";
             
             $posicion = getPosition($_SESSION['rey_n']);
-            if($posicion[1] == $columna_actual && $posicion[0] == $columna)
+            if($posicion[1] == $columna_actual && $posicion[0] == $fila)
               echo 'rey';
 
             echo "</td>";
@@ -67,26 +82,7 @@
       }
       echo "</table>";
 
-      function getPosition($string){
-        return explode("-", $string);
-      }
-      function comprobarQueNoSeSalga($string, $cantFilaTablero, $cantColumnaTablero){
-        str_split($string);
-
-        $posicion = getPosition($string);
-
-        $numAscii = ord($posicion[0]);
-        $numMinAscii = ord("1");
-        $numMaxAscii = $numMinAscii + $cantFilaTablero - 1;
-        $charAscii = ord($posicion[1]);
-        $charMinAscii = ord("A");
-        $charMaxAscii = $charMinAscii + $cantColumnaTablero - 1;
-        if($numAscii >= $numMinAscii && $numAscii <= $numMinAscii && $charAscii >= $charMinAscii && $charAscii <= $charMaxAscii)
-          return true;
-        else
-          return false;
-
-      }
+	  
     ?>
     <form method="post" action="">
       <input type="text" name="coordenades">
